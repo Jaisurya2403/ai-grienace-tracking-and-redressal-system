@@ -1,0 +1,143 @@
+package com.mycomplaintportal.auth.controller;
+
+import com.mycomplaintportal.auth.dto.AuthResponse;
+import com.mycomplaintportal.auth.dto.LoginRequest;
+import com.mycomplaintportal.auth.dto.SignupRequest;
+import com.mycomplaintportal.auth.dto.VerifyOtpRequest;
+import com.mycomplaintportal.auth.security.JwtTokenProvider;
+import com.mycomplaintportal.auth.service.AuthService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<AuthResponse> sendSignupOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        AuthResponse response = authService.sendSignupOtp(email);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<AuthResponse> sendForgotPasswordOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        AuthResponse response = authService.sendForgotPasswordOtp(email);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/signup")
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
+        AuthResponse response = authService.signup(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        AuthResponse response = authService.verifyOtp(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<AuthResponse> resendOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        AuthResponse response = authService.sendOtp(email);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.ok(AuthResponse.builder()
+                    .email(request.getEmail())
+                    .message(e.getMessage())
+                    .build());
+        }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<UserAuth>> getAllUsersFromAuth() {
+        return ResponseEntity.ok(authService.getAllUsersFromAuth());
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String newPassword = payload.get("newPassword");
+        AuthResponse response = authService.resetPassword(email, newPassword);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<AuthResponse> changePassword(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String oldPassword = payload.get("oldPassword");
+        String newPassword = payload.get("newPassword");
+        AuthResponse response = authService.changePassword(email, oldPassword, newPassword);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/create-admin")
+    public ResponseEntity<Map<String, Object>> createAdminAccount(@RequestBody Map<String, String> payload) {
+        String username = payload.get("username");
+        String email = payload.get("email");
+        String password = payload.get("password");
+        String role = payload.get("role");
+        authService.createAdminAccount(username, email, password, role);
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "message", "Admin account successfully created/updated in authentication database.",
+            "email", email
+        ));
+    }
+
+    @PutMapping("/profile/{userId}")
+    public ResponseEntity<com.mycomplaintportal.auth.entity.UserAuth> updateUserProfile(@PathVariable("userId") String userId, @RequestBody Map<String, String> payload) {
+        String name = payload.get("name");
+        String phone = payload.get("phone");
+        String location = payload.get("location");
+        String profileImageUrl = payload.get("profileImageUrl");
+        return ResponseEntity.ok(authService.updateUserProfile(userId, name, phone, location, profileImageUrl));
+    }
+
+    @PutMapping("/users/{userId}/block")
+    public ResponseEntity<Map<String, Object>> toggleUserBlockedInAuth(@PathVariable("userId") String userId) {
+        boolean isBlocked = authService.toggleUserBlocked(userId);
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "blocked", isBlocked));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Map<String, String>> deleteUserInAuth(@PathVariable("userId") String userId) {
+        authService.deleteUser(userId);
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "User account deleted successfully."));
+    }
+
+    @DeleteMapping("/delete-admin")
+    public ResponseEntity<Map<String, String>> deleteAdminAccount(@RequestParam("email") String email) {
+        authService.deleteAdminAccount(email);
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "message", "Admin account successfully deleted from authentication database.",
+            "email", email
+        ));
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<Boolean> validateToken(@RequestParam("token") String token) {
+        boolean isValid = jwtTokenProvider.validateToken(token);
+        return ResponseEntity.ok(isValid);
+    }
+}
