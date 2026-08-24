@@ -214,10 +214,25 @@ export const SignupPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 dark:hover:bg-slate-800 transition-all duration-200 focus:outline-none flex-shrink-0 cursor-pointer"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      background: 'transparent',
+                      boxShadow: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px',
+                      margin: '0',
+                    }}
                     title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4 text-slate-600 dark:text-slate-400" /> : <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 stroke-[2.2]" />
+                    ) : (
+                      <Eye className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 stroke-[2.2]" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -250,10 +265,25 @@ export const SignupPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 dark:hover:bg-slate-800 transition-all duration-200 focus:outline-none flex-shrink-0 cursor-pointer"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      background: 'transparent',
+                      boxShadow: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px',
+                      margin: '0',
+                    }}
                     title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4 text-slate-600 dark:text-slate-400" /> : <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 stroke-[2.2]" />
+                    ) : (
+                      <Eye className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 stroke-[2.2]" />
+                    )}
                   </button>
                 </div>
               </div>

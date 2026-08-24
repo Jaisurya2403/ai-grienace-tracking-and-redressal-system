@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, KeyRound, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { TopNavBar } from '../../components/common/TopNavBar.jsx';
 import { BackButton } from '../../components/common/BackButton.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -14,6 +14,7 @@ export const ChangePasswordPage = () => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -115,7 +116,7 @@ export const ChangePasswordPage = () => {
               <div className="flex items-center gap-3 bg-white p-3 px-4 rounded-full border border-slate-300 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                 <KeyRound className="w-5 h-5 text-amber-600 stroke-[2.2] flex-shrink-0" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="Enter current password"
                   value={oldPassword}
@@ -133,6 +134,29 @@ export const ChangePasswordPage = () => {
                     margin: '0',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-200 focus:outline-none flex-shrink-0 cursor-pointer"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    margin: '0',
+                  }}
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4.5 h-4.5 text-slate-500 hover:text-blue-600 stroke-[2.2]" />
+                  ) : (
+                    <Eye className="w-4.5 h-4.5 text-slate-500 hover:text-blue-600 stroke-[2.2]" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -144,7 +168,7 @@ export const ChangePasswordPage = () => {
               <div className="flex items-center gap-3 bg-white p-3 px-4 rounded-full border border-slate-300 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                 <Lock className="w-5 h-5 text-blue-600 stroke-[2.2] flex-shrink-0" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="Enter new password (min. 6 characters)"
                   value={newPassword}
@@ -162,6 +186,29 @@ export const ChangePasswordPage = () => {
                     margin: '0',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-200 focus:outline-none flex-shrink-0 cursor-pointer"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    margin: '0',
+                  }}
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4.5 h-4.5 text-slate-500 hover:text-blue-600 stroke-[2.2]" />
+                  ) : (
+                    <Eye className="w-4.5 h-4.5 text-slate-500 hover:text-blue-600 stroke-[2.2]" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -173,7 +220,7 @@ export const ChangePasswordPage = () => {
               <div className="flex items-center gap-3 bg-white p-3 px-4 rounded-full border border-slate-300 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                 <Lock className="w-5 h-5 text-emerald-600 stroke-[2.2] flex-shrink-0" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="Re-enter new password"
                   value={confirmPassword}
@@ -191,6 +238,29 @@ export const ChangePasswordPage = () => {
                     margin: '0',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-200 focus:outline-none flex-shrink-0 cursor-pointer"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    margin: '0',
+                  }}
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4.5 h-4.5 text-slate-500 hover:text-blue-600 stroke-[2.2]" />
+                  ) : (
+                    <Eye className="w-4.5 h-4.5 text-slate-500 hover:text-blue-600 stroke-[2.2]" />
+                  )}
+                </button>
               </div>
             </div>
 
