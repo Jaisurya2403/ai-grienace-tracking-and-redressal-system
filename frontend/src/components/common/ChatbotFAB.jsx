@@ -1,39 +1,113 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Sparkles, User, RefreshCw, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useComplaints } from '../../context/ComplaintContext.jsx';
+import { askGroqPortalChatbot } from '../../services/groqAiService.js';
 
 export const ChatbotFAB = () => {
-  const { theme } = useAuth();
+  const { user, theme } = useAuth();
+  const { complaints = [] } = useComplaints();
   const isDark = theme === 'dark';
+
+  const userComplaints = user ? complaints.filter(c => 
+    (c.userId && String(c.userId).toLowerCase() === String(user.id).toLowerCase()) ||
+    (c.userEmail && String(c.userEmail).toLowerCase() === String(user.email).toLowerCase()) ||
+    (c.userName && String(c.userName).toLowerCase() === String(user.name).toLowerCase())
+  ) : [];
+
+  const storageKey = `mcp_chat_history_${user?.id || 'guest'}`;
 
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      sender: 'bot',
-      text: 'Hello! I am your MyComplaintPortal AI Assistant. How can I help you report an issue, check status, or find department contacts today?',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+  
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) { }
+    return [
+      {
+        id: '1',
+        sender: 'bot',
+        text: `Hello ${user?.name ? user.name : 'there'}! I am your MyComplaintPortal Groq AI Assistant 🤖. Ask me anything about your complaints, status tracking, or municipal services!`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ];
+  });
 
-  // Auto scroll to bottom when new messages arrive
+  // Persist conversation history throughout active login session
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages && messages.length > 0) {
+      sessionStorage.setItem(storageKey, JSON.stringify(messages));
     }
-  }, [messages, isTyping, isOpen]);
+  }, [messages, storageKey]);
+
+  const [isTyping, setIsTyping] = useState(false);
+  const lastMessageBubbleRef = useRef(null);
+
+  // Align to top of newly generated answer bubble so user reads from top to bottom
+  useEffect(() => {
+    if (isOpen && lastMessageBubbleRef.current) {
+      lastMessageBubbleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [messages.length, isOpen]);
 
   const quickQuestions = [
+    'What is the status of my complaints?',
     'How to register a complaint?',
-    'Track my complaint status',
-    'Water Board contact info',
-    'Road & Potholes department',
+    'Water Supply Board contacts',
+    'Roads & Transport department',
   ];
 
-  const handleSendMessage = (textToSend) => {
+  // CLEAN TEXT FORMATTER FOR CHAT MESSAGES
+  const renderCleanFormattedText = (rawText) => {
+    if (!rawText) return null;
+
+    let clean = rawText
+      // Strip <think>...</think> reasoning tags completely
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/<\/?think>/gi, '')
+      // Remove ASCII markdown table divider lines like |---|---|
+      .replace(/\|[\s-:]+\|[\s-:]+\|?/g, '')
+      // Convert markdown table rows | Key | Value | into clean lines
+      .replace(/\|/g, ' ')
+      // Convert raw ### headers into clean uppercase bold text
+      .replace(/#{1,6}\s?/g, '')
+      // Remove double dashes ---
+      .replace(/---/g, '')
+      // Trim multiple spaces
+      .replace(/[ \t]+/g, ' ');
+
+    const lines = clean.split('\n').filter(line => line.trim().length > 0);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        {lines.map((line, idx) => {
+          const trimmed = line.trim();
+          const isListItem = /^\d+[\.\)]|^\•|^\-*/.test(trimmed);
+          const formattedLine = trimmed.replace(/\*\*/g, '');
+
+          return (
+            <div 
+              key={idx} 
+              style={{
+                paddingLeft: isListItem ? '0.5rem' : '0',
+                borderLeft: isListItem ? '2px solid #60a5fa' : 'none',
+                marginTop: isListItem ? '0.15rem' : '0',
+              }}
+            >
+              {formattedLine}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const handleSendMessage = async (textToSend) => {
     const text = textToSend || inputText;
     if (!text.trim()) return;
 
@@ -44,39 +118,35 @@ export const ChatbotFAB = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const currentHistory = [...messages, userMsg];
+    setMessages(currentHistory);
     if (!textToSend) setInputText('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      let botReply = "Thank you for your message. You can register your civic grievance by clicking 'Register Complaint' on the home page.";
-      const query = text.toLowerCase();
-
-      if (query.includes('pothole') || query.includes('road')) {
-        botReply = "For road or pothole repairs, select 'Public Works Department (PWD)' when filing your complaint. Be sure to upload clear photos and include your 6-digit pincode.";
-      } else if (query.includes('water') || query.includes('leak')) {
-        botReply = "Water supply issues are routed to the 'Water Supply & Sewerage Board'. Emergency line: 1800-1215-1514.";
-      } else if (query.includes('electricity') || query.includes('power')) {
-        botReply = "Power outages and transformer issues fall under the 'Electricity Board (EB)'. Average resolution time is under 24 hours.";
-      } else if (query.includes('status') || query.includes('track')) {
-        botReply = "You can track real-time status of your reported grievances under 'My Complaints' in your citizen dashboard.";
-      } else if (query.includes('duplicate') || query.includes('repost')) {
-        botReply = "Before posting a new complaint, our Gemini AI automatically checks if an issue has already been reported in your pincode. If a match is found, click 'Repost' to support it!";
-      } else if (query.includes('register') || query.includes('how to')) {
-        botReply = "To register a grievance, click 'Register Complaint' at the top of the home page. Fill in your address, pincode, description, and upload photo evidence!";
-      }
-
+    try {
+      const groqRes = await askGroqPortalChatbot(text.trim(), currentHistory, { user, complaints: userComplaints });
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           sender: 'bot',
-          text: botReply,
+          text: groqRes.reply,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: "⚠️ Connection issue with Groq AI. Please verify your API Key.",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 900);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -135,7 +205,7 @@ export const ChatbotFAB = () => {
               </div>
               <div>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: '800', fontFamily: 'serif', color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  Gemini Civic Bot <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                  My Civic Bot 
                 </h4>
                 <p style={{ fontSize: '0.65rem', color: '#93c5fd', margin: 0, fontWeight: '600' }}>
                   Online • 24/7 AI Civic Support
@@ -171,9 +241,10 @@ export const ChatbotFAB = () => {
               backgroundColor: isDark ? '#090f1d' : '#f8fafc',
             }}
           >
-            {messages.map((m) => (
+            {messages.map((m, idx) => (
               <div
                 key={m.id}
+                ref={idx === messages.length - 1 ? lastMessageBubbleRef : null}
                 style={{
                   display: 'flex',
                   gap: '0.5rem',
@@ -213,7 +284,11 @@ export const ChatbotFAB = () => {
                     fontWeight: '700',
                   }}
                 >
-                  <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.text}</p>
+                  {m.sender === 'user' ? (
+                    <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.text}</p>
+                  ) : (
+                    renderCleanFormattedText(m.text)
+                  )}
                   <span
                     style={{
                       fontSize: '0.6rem',
@@ -262,11 +337,9 @@ export const ChatbotFAB = () => {
 
             {isTyping && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: '700', fontStyle: 'italic', color: '#2563eb' }}>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Gemini AI is typing...
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Groq AI is typing...
               </div>
             )}
-
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Bottom Chat Input Form */}

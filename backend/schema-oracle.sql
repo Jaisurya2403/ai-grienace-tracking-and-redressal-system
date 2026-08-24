@@ -148,18 +148,18 @@ INSERT INTO MUNICIPAL_DEPARTMENTS (DEPT_ID, DEPT_NAME, DEPT_CODE, OFFICIAL_EMAIL
 VALUES ('dept-pwd', 'Public Works Department (PWD)', 'DEPT-01', 'b.karthikeyan10000@gmail.com', 'Road maintenance, bridges, drainage and civic infrastructure.', 420, 378, 42);
 
 INSERT INTO MUNICIPAL_DEPARTMENTS (DEPT_ID, DEPT_NAME, DEPT_CODE, OFFICIAL_EMAIL, DESCRIPTION, TOTAL_COUNT, SOLVED_COUNT, PENDING_COUNT)
-VALUES ('dept-eb', 'Electricity Board (EB)', 'DEPT-02', 'eb@coimbatore.gov.in', 'Streetlight outages, transformer repairs, power grid management.', 380, 357, 23);
+VALUES ('dept-eb', 'Electricity Board (EB)', 'DEPT-02', 'b.karthikeyan10000@gmail.com', 'Streetlight outages, transformer repairs, power grid management.', 380, 357, 23);
 
 INSERT INTO MUNICIPAL_DEPARTMENTS (DEPT_ID, DEPT_NAME, DEPT_CODE, OFFICIAL_EMAIL, DESCRIPTION, TOTAL_COUNT, SOLVED_COUNT, PENDING_COUNT)
 VALUES ('dept-sanitation', 'Sanitation & Solid Waste Dept', 'DEPT-03', 'b.karthikeyan10000@gmail.com    ', 'Garbage collection, waste dumping, public hygiene.', 510, 464, 46);
 
 INSERT INTO MUNICIPAL_DEPARTMENTS (DEPT_ID, DEPT_NAME, DEPT_CODE, OFFICIAL_EMAIL, DESCRIPTION, TOTAL_COUNT, SOLVED_COUNT, PENDING_COUNT)
-VALUES ('dept-water', 'Water Supply & Sewage Board', 'DEPT-04', 'water@coimbatore.gov.in', 'Pipeline leaks, sewage overflow, drinking water supply.', 290, 249, 41);
+VALUES ('dept-water', 'Water Supply & Sewage Board', 'DEPT-04', 'jaisurya7482@gmail.com', 'Pipeline leaks, sewage overflow, drinking water supply.', 290, 249, 41);
 
 INSERT INTO MUNICIPAL_DEPARTMENTS (DEPT_ID, DEPT_NAME, DEPT_CODE, OFFICIAL_EMAIL, DESCRIPTION, TOTAL_COUNT, SOLVED_COUNT, PENDING_COUNT)
-VALUES ('dept-transport', 'Transport & Traffic Division', 'DEPT-05', 'transport@coimbatore.gov.in', 'Traffic signals, bus shelter repair, road safety signs.', 180, 158, 22);
+VALUES ('dept-transport', 'Transport & Traffic Division', 'DEPT-05', 'jaisurya7482@gmail.com', 'Traffic signals, bus shelter repair, road safety signs.', 180, 158, 22);
 
 INSERT INTO MUNICIPAL_DEPARTMENTS (DEPT_ID, DEPT_NAME, DEPT_CODE, OFFICIAL_EMAIL, DESCRIPTION, TOTAL_COUNT, SOLVED_COUNT, PENDING_COUNT)
-VALUES ('dept-it', 'IT & Smart Governance Services', 'DEPT-06', 'it@coimbatore.gov.in', 'Digital portal services, CCTV monitoring, smart city tech.', 120, 115, 5);
+VALUES ('dept-it', 'IT & Smart Governance Services', 'DEPT-06', 'jaisurya7482@gmail.com', 'Digital portal services, CCTV monitoring, smart city tech.', 120, 115, 5);
 
 COMMIT;

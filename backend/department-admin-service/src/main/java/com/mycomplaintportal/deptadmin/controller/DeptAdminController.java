@@ -57,28 +57,42 @@ public class DeptAdminController {
     }
 
     @PostMapping("/admins")
-    public ResponseEntity<AdminAccount> createAdmin(@RequestBody java.util.Map<String, Object> payload) {
-        String username = payload.containsKey("username") ? payload.get("username").toString() : "Admin";
-        String email = payload.containsKey("email") ? payload.get("email").toString() : "";
-        String grantLevel = payload.containsKey("grantLevel") ? payload.get("grantLevel").toString() : "Department Admin";
-        String password = payload.containsKey("password") ? payload.get("password").toString() : "ksjaisurya";
-        String role = (payload.containsKey("role") && payload.get("role") != null && !payload.get("role").toString().isBlank())
-                ? payload.get("role").toString()
-                : (grantLevel.toLowerCase().contains("super") ? "SUPER_ADMIN" : "DEPARTMENT_ADMIN");
+    public ResponseEntity<?> createAdmin(@RequestBody java.util.Map<String, Object> payload) {
+        try {
+            String username = payload.containsKey("username") ? payload.get("username").toString() : "Admin";
+            String email = payload.containsKey("email") ? payload.get("email").toString() : "";
+            String grantLevel = payload.containsKey("grantLevel") ? payload.get("grantLevel").toString() : "Department Admin";
+            String password = payload.containsKey("password") ? payload.get("password").toString() : "ksjaisurya";
+            String role = (payload.containsKey("role") && payload.get("role") != null && !payload.get("role").toString().isBlank())
+                    ? payload.get("role").toString()
+                    : (grantLevel.toLowerCase().contains("super") ? "SUPER_ADMIN" : "DEPARTMENT_ADMIN");
 
-        AdminAccount admin = AdminAccount.builder()
-                .username(username)
-                .email(email)
-                .grantLevel(grantLevel)
-                .active(true)
-                .build();
+            AdminAccount admin = AdminAccount.builder()
+                    .username(username)
+                    .email(email)
+                    .grantLevel(grantLevel)
+                    .active(true)
+                    .build();
 
-        return ResponseEntity.ok(deptAdminService.createAdmin(admin, password, role));
+            AdminAccount created = deptAdminService.createAdmin(admin, password, role);
+            return ResponseEntity.ok(created);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "Admin creation failed. Email may already exist."));
+        }
     }
 
     @PutMapping("/admins/{id}")
-    public ResponseEntity<AdminAccount> updateAdmin(@PathVariable("id") String id, @RequestBody AdminAccount admin) {
-        return ResponseEntity.ok(deptAdminService.updateAdmin(id, admin));
+    public ResponseEntity<?> updateAdmin(@PathVariable("id") String id, @RequestBody AdminAccount admin) {
+        try {
+            AdminAccount updated = deptAdminService.updateAdmin(id, admin);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "Admin update failed."));
+        }
     }
 
     @DeleteMapping("/admins/{id}")

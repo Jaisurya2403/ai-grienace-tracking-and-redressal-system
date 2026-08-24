@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, CheckCircle2, ArrowLeft, Mail, User, Shield, Check } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, ArrowLeft, Mail, User, Shield, Check, Eye, EyeOff } from 'lucide-react';
 import { TopNavBar } from '../../components/common/TopNavBar.jsx';
 import { ChatbotFAB } from '../../components/common/ChatbotFAB.jsx';
 import { useComplaints } from '../../context/ComplaintContext.jsx';
@@ -16,6 +16,7 @@ export const AddAdminPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [grantLevel, setGrantLevel] = useState('Department Admin');
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -144,19 +145,29 @@ export const AddAdminPage = () => {
               <label className="block text-xs font-extrabold text-slate-700 dark:text-slate-300 font-serif mb-1.5">
                 Temporary Password :
               </label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                  color: isDark ? '#ffffff' : '#0f172a',
-                  borderColor: isDark ? '#475569' : '#cbd5e1',
-                }}
-                className="w-full p-3 px-4 rounded-2xl border text-xs font-extrabold outline-none focus:ring-2 focus:ring-amber-500 shadow-sm"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#0f172a',
+                    borderColor: isDark ? '#475569' : '#cbd5e1',
+                  }}
+                  className="w-full p-3 px-4 pr-10 rounded-2xl border text-xs font-extrabold outline-none focus:ring-2 focus:ring-amber-500 shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 p-1 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus:outline-none cursor-pointer"
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
@@ -175,7 +186,6 @@ export const AddAdminPage = () => {
               >
                 <option value="Department Admin">Department Admin</option>
                 <option value="Super Admin">Super Admin</option>
-                <option value="Executive Auditor">Executive Auditor</option>
               </select>
             </div>
 

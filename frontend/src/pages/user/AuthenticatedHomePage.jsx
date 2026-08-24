@@ -71,6 +71,17 @@ export const AuthenticatedHomePage = () => {
     return true;
   });
 
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.grantLevel === 'Super Admin' || user?.email?.toLowerCase() === 'jaisurya7482@gmail.com';
+  const isDeptAdmin = !isSuperAdmin && (user?.role === 'DEPARTMENT_ADMIN' || user?.grantLevel === 'Department Admin' || isAdmin);
+
+  const roleBadgeText = isSuperAdmin 
+    ? '🛡️ Super Admin Control Center' 
+    : (isDeptAdmin ? '🏛️ Department Admin Operations' : '👥 Citizen Member Portal');
+
+  const roleWelcomeTitle = isSuperAdmin
+    ? `Welcome Back, Super Admin ${user?.name || 'Jai Surya'}! 👋`
+    : (isDeptAdmin ? `Welcome Back, Department Admin ${user?.name || 'Officer'}! 👋` : `Welcome Back, ${user?.name || 'Citizen'}! 👋`);
+
   // IF USER IS AN ADMIN, RENDER CENTERED LIGHT BLUE CIVIC THEME DASHBOARD
   if (isAdmin) {
     return (
@@ -89,7 +100,7 @@ export const AuthenticatedHomePage = () => {
               <div className="text-center md:text-left">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
                   <span className="text-[11px] font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wider font-serif bg-blue-100 dark:bg-blue-900/60 px-3.5 py-1 rounded-full shadow-sm">
-                    🛡️ Super Admin Control Center
+                    {roleBadgeText}
                   </span>
                   <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider font-serif bg-emerald-100 dark:bg-emerald-900/60 px-3.5 py-1 rounded-full shadow-sm">
                     Real-time Active
@@ -97,7 +108,7 @@ export const AuthenticatedHomePage = () => {
                 </div>
 
                 <h1 className="text-2xl sm:text-4xl font-extrabold font-serif text-slate-900 dark:text-white mt-1">
-                  Welcome Back, Super Admin {user?.name || 'Jai Surya'}! 👋
+                  {roleWelcomeTitle}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-semibold mt-1">
                   Executive analytics dashboard, grievance redressal control & municipal oversight.

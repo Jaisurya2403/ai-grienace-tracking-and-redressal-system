@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Key, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, Key, Mail, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../../components/common/BackButton.jsx';
 import { authApi } from '../../api/apiClient';
 
@@ -11,6 +11,7 @@ export const ForgotPasswordPage = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [resendTimer, setResendTimer] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -48,7 +49,6 @@ export const ForgotPasswordPage = () => {
         type: 'success',
       });
     } catch (err) {
-      console.warn('Forgot password OTP error:', err);
       const errorMsg = err?.message || `No registered account found with email address: ${email}. Please check your email or sign up.`;
       setToastMessage({
         title: 'Account Not Found ⚠️',
@@ -125,12 +125,10 @@ export const ForgotPasswordPage = () => {
         target: '/login',
       });
     } catch (err) {
-      console.warn('Backend reset password note:', err);
       setToastMessage({
-        title: 'Password Reset Successful! 🎉',
-        desc: 'Your new password has been updated in the database. Redirecting to login page...',
-        type: 'success',
-        target: '/login',
+        title: 'Password Reset Failed ⚠️',
+        desc: err?.message || 'Failed to update password in database. Please try again.',
+        type: 'warning',
       });
     } finally {
       setLoading(false);
@@ -245,10 +243,10 @@ export const ForgotPasswordPage = () => {
                   disabled={resendTimer > 0 || loading}
                   style={{ backgroundColor: '#0f172a', color: '#ffffff' }}
                   className={`pill-button-dark px-4 py-3 rounded-full border border-slate-300 text-xs font-extrabold transition-all cursor-pointer shadow-sm ${
-                    resendTimer > 0 ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
+                    resendTimer > 0 || loading ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'
                   }`}
                 >
-                  {resendTimer > 0 ? `Resend OTP (${resendTimer}s)` : 'Send OTP 📩'}
+                  {loading ? 'Sending OTP... ⏳' : (resendTimer > 0 ? `Resend OTP (${resendTimer}s)` : 'Send OTP 📩')}
                 </button>
 
                 <button
@@ -271,7 +269,7 @@ export const ForgotPasswordPage = () => {
                 <div className="flex items-center gap-3 bg-white p-3 px-4 rounded-full border border-slate-300 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                   <Lock className="w-5 h-5 text-slate-700 stroke-[2.2] flex-shrink-0" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={newPassword}
@@ -289,6 +287,14 @@ export const ForgotPasswordPage = () => {
                       margin: '0',
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 text-slate-600" /> : <Eye className="w-4 h-4 text-slate-600" />}
+                  </button>
                 </div>
               </div>
 
@@ -300,7 +306,7 @@ export const ForgotPasswordPage = () => {
                 <div className="flex items-center gap-3 bg-white p-3 px-4 rounded-full border border-slate-300 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                   <Lock className="w-5 h-5 text-slate-700 stroke-[2.2] flex-shrink-0" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={confirmPassword}
@@ -318,6 +324,14 @@ export const ForgotPasswordPage = () => {
                       margin: '0',
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 text-slate-600" /> : <Eye className="w-4 h-4 text-slate-600" />}
+                  </button>
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, ShieldAlert, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ShieldAlert, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../../components/common/BackButton.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -12,6 +12,7 @@ export const LoginPage = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -133,7 +134,7 @@ export const LoginPage = () => {
               <div className="flex items-center gap-3 bg-white p-3 px-4 rounded-full border border-slate-300 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                 <Lock className="w-5 h-5 text-slate-600 stroke-[2.2] flex-shrink-0" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="••••••••"
                   value={password}
@@ -151,6 +152,14 @@ export const LoginPage = () => {
                     margin: '0',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4 text-slate-600" /> : <Eye className="w-4 h-4 text-slate-600" />}
+                </button>
               </div>
             </div>
 

@@ -31,7 +31,14 @@ export const AdminsManagementPage = () => {
     return nameStr.includes(q) || emailStr.includes(q);
   });
 
+  const isCurrentUserSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.grantLevel === 'Super Admin' || user?.email?.toLowerCase() === 'jaisurya7482@gmail.com';
+
   const handleStartManage = (adm) => {
+    const isTargetSuperAdmin = (adm.grantLevel || adm.role || '').toLowerCase().includes('super') || adm.email?.toLowerCase() === 'jaisurya7482@gmail.com';
+    if (isTargetSuperAdmin && !isCurrentUserSuperAdmin) {
+      alert("Access Restricted: Department Admins cannot modify or revoke Super Admin accounts.");
+      return;
+    }
     setManagingAdmin(adm);
     setEditUsername(adm.username);
     setEditEmail(adm.email);
@@ -164,10 +171,17 @@ export const AdminsManagementPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform flex-shrink-0">
-                    <span>Manage Access</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
+                  {((adm.grantLevel || adm.role || '').toLowerCase().includes('super') || adm.email?.toLowerCase() === 'jaisurya7482@gmail.com') && !isCurrentUserSuperAdmin ? (
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-400 dark:text-slate-500 flex-shrink-0">
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>Super Admin Locked</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform flex-shrink-0">
+                      <span>Manage Access</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -278,7 +292,6 @@ export const AdminsManagementPage = () => {
                   >
                     <option value="Department Admin">Department Admin</option>
                     <option value="Super Admin">Super Admin</option>
-                    <option value="Executive Auditor">Executive Auditor</option>
                   </select>
                 </div>
 

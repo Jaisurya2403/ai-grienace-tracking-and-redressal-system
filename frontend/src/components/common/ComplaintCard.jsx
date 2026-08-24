@@ -40,7 +40,8 @@ const formatDateTimeDDMMYYYY = (rawDate) => {
 };
 
 export const ComplaintCard = ({ complaint, isAdmin = false, onRepost }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, theme } = useAuth();
+  const isDark = theme === 'dark';
   const navigate = useNavigate();
   const { toggleUpvote, toggleRepost, reportComplaint, cycleStatus, deleteComplaint, addFeedback, users } = useComplaints();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -210,7 +211,7 @@ export const ComplaintCard = ({ complaint, isAdmin = false, onRepost }) => {
               )}
             </div>
             <div>
-              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-serif leading-tight">{complaint.userName}</h4>
+              <h4 style={{ color: isDark ? '#ffffff' : '#000000', fontWeight: '900' }} className="text-sm font-black font-serif leading-tight">{complaint.userName}</h4>
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold mt-0.5">
                 <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-medium">
                   <Clock className="w-3.5 h-3.5 text-blue-600" /> {postedDateTimeFormatted}

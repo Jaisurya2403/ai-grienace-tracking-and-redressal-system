@@ -94,6 +94,10 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('mcp_user');
     localStorage.removeItem('mcp_jwt');
+    sessionStorage.removeItem('mcp_chat_history');
+    if (user?.id) {
+      sessionStorage.removeItem(`mcp_chat_history_${user.id}`);
+    }
   };
 
   const updateUser = async (data) => {
@@ -119,6 +123,15 @@ export const AuthProvider = ({ children }) => {
           location: updatedUser.location,
           profileImageUrl: updatedUser.profileImage || updatedUser.profileImageUrl,
         });
+        if (updatedUser.role === 'SUPER_ADMIN' || updatedUser.role === 'DEPARTMENT_ADMIN' || updatedUser.role === 'ADMIN' || updatedUser.email === 'jaisurya7482@gmail.com') {
+          await deptAdminApi.updateAdmin(identifier, {
+            username: updatedUser.name,
+            email: updatedUser.email,
+            designation: updatedUser.designation,
+            badgeId: updatedUser.badgeId,
+            grantLevel: (updatedUser.role === 'SUPER_ADMIN' || updatedUser.email === 'jaisurya7482@gmail.com') ? 'Super Admin' : 'Department Admin',
+          });
+        }
       } catch (e) {
         console.warn('Backend user profile update note:', e);
       }

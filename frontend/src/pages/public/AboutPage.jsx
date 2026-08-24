@@ -31,10 +31,11 @@ export const AboutPage = () => {
             {/* Contact Pill Box */}
             <div className="glass-civic contact-pill">
               <p className="contact-info">
-                Email: <span className="contact-value">mycomplaintportal.gov.in</span>
+                Email 1: <span className="contact-value">jaisurya7482@gmail.com</span><br></br>
+                Email 2: <span className="contact-value">b.karthikeyan1000@gmail.com</span>
               </p>
               <p className="contact-info">
-                Ph. no: <span className="contact-value">1800-1215-1514</span>
+                Ph. no: <span className="contact-value">735-800-7398</span>
               </p>
             </div>
 

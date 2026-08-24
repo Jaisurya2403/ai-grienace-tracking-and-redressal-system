@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 
 export const DepartmentsManagementPage = () => {
   const { theme } = useAuth();
-  const { departments, updateDepartment, deleteDepartment } = useComplaints();
+  const { departments, updateDepartment, deleteDepartment, complaints = [] } = useComplaints();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Manage Department Modal State
@@ -25,33 +25,37 @@ export const DepartmentsManagementPage = () => {
   const isDark = theme === 'dark';
 
   const filteredDepts = departments.filter((d) => {
-  const query = searchQuery.toLowerCase().trim();
+    const query = searchQuery.toLowerCase().trim();
+    return (
+      (d.name || '').toLowerCase().includes(query) ||
+      (d.code || '').toLowerCase().includes(query) ||
+      (d.officialEmail || '').toLowerCase().includes(query) ||
+      (d.description || '').toLowerCase().includes(query)
+    );
+  });
 
-  return (
-    (d.name || '').toLowerCase().includes(query) ||
-    (d.code || '').toLowerCase().includes(query) ||
-    (d.officialEmail || '').toLowerCase().includes(query) ||
-    (d.description || '').toLowerCase().includes(query)
-  );
-});
+  const getAssignedCount = (dept) => {
+    if (!complaints || complaints.length === 0) return 0;
+    return complaints.filter((c) => {
+      if (!c) return false;
+      const matchId = c.departmentId && String(c.departmentId).toLowerCase() === String(dept.id).toLowerCase();
+      const matchCode = c.departmentId && dept.code && String(c.departmentId).toLowerCase() === String(dept.code).toLowerCase();
+      const matchName = c.departmentName && dept.name && (
+        c.departmentName.toLowerCase().includes(dept.name.toLowerCase()) ||
+        dept.name.toLowerCase().includes(c.departmentName.toLowerCase())
+      );
+      return matchId || matchCode || matchName;
+    }).length;
+  };
 
-  // const handleStartManage = (dept) => {
-  //   setManagingDept(dept);
-  //   setEditName(dept.name);
-  //   setEditEmail(dept.contactEmail || dept.email || 'dept@coimbatore.gov.in');
-  //   setEditCode(dept.code || 'DEPT-01');
-  //   setIsEditing(false);
-  // };
-
-const handleStartManage = (dept) => {
-  console.log("Selected department:", dept);
-
-  setManagingDept(dept);
-  setEditName(dept.name || '');
-  setEditEmail(dept.officialEmail || '');
-  setEditCode(dept.code || '');
-  setIsEditing(false);
-};
+  const handleStartManage = (dept) => {
+    console.log("Selected department:", dept);
+    setManagingDept(dept);
+    setEditName(dept.name || '');
+    setEditEmail(dept.officialEmail || '');
+    setEditCode(dept.code || '');
+    setIsEditing(false);
+  };
 
   // const handleSaveEdit = (e) => {
   //   e.preventDefault();
@@ -207,7 +211,7 @@ const handleStartManage = (dept) => {
 
                 <div className="pt-3 border-t cursor-pointer border-slate-100 dark:border-slate-800/80 flex items-center  justify-between gap-4">
                   <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Assigned Grievances: 140+ active posts
+                    Assigned Grievances: <strong className="font-extrabold text-slate-900 dark:text-white">{getAssignedCount(dept)}</strong>
                   </span>
                   <div className="flex pill-button-dark items-center  gap-1 text-xs font-extrabold text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform flex-shrink-0">
                     <span>Manage Department</span>

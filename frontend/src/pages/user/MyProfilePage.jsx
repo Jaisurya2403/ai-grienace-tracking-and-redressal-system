@@ -6,32 +6,44 @@ import {
 import { SidebarMenu } from '../../components/common/SidebarMenu.jsx';
 import { TopNavBar } from '../../components/common/TopNavBar.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useComplaints } from '../../context/ComplaintContext.jsx';
 
 import { imagesApi } from '../../api/apiClient';
 
 export const MyProfilePage = () => {
   const { user, updateUser, theme } = useAuth();
+  const { complaints = [], departments = [] } = useComplaints();
   const isDark = theme === 'dark';
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'DEPARTMENT_ADMIN' || user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'jaisurya7482@gmail.com';
 
+  // Compute live DB statistics based on actual stored records
+  const grievancesMonitoredCount = complaints.length;
+  const resolutionsApprovedCount = complaints.filter(
+    (c) => c?.status === 'Resolved' || c?.status === 'CLOSED' || c?.status === 'APPROVED'
+  ).length;
+  const activeDepartmentsCount = departments.length;
+
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(user?.name || (isAdmin ? 'Super Admin Jai Surya' : 'Karthi'));
-  const [email, setEmail] = useState(user?.email || (isAdmin ? 'jaisurya7482@gmail.com' : '717824p124@kce.ac.in'));
-  const [phone, setPhone] = useState(user?.phone || '8428107518');
-  const [location, setLocation] = useState(user?.location || (isAdmin ? 'Peelamedu, Coimbatore - 641004' : 'Coimbatore, Tamil Nadu'));
-  const [department, setDepartment] = useState(user?.department || 'Public Works & Executive Command');
-  const [designation, setDesignation] = useState(user?.designation || 'Chief Municipal Administrator');
-  const [badgeId, setBadgeId] = useState(user?.badgeId || 'ADM-8824-TN');
-  const [profileImage, setProfileImage] = useState(user?.profileImage || null);
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [location, setLocation] = useState(user?.location || '');
+  const [department, setDepartment] = useState(user?.department || (isAdmin ? 'Public Works Authority' : ''));
+  const [designation, setDesignation] = useState(user?.designation || (isAdmin ? 'Administrator' : ''));
+  const [badgeId, setBadgeId] = useState(user?.badgeId || (user?.id?.startsWith('admin-') ? user.id.toUpperCase() : ''));
+  const [profileImage, setProfileImage] = useState(user?.profileImage || user?.profileImageUrl || null);
 
   useEffect(() => {
     if (user) {
-      if (user.name) setName(user.name);
-      if (user.email) setEmail(user.email);
-      if (user.phone) setPhone(user.phone);
-      if (user.location) setLocation(user.location);
-      if (user.profileImage) setProfileImage(user.profileImage);
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone(user.phone || '');
+      setLocation(user.location || '');
+      setDepartment(user.department || (isAdmin ? 'Public Works Authority' : ''));
+      setDesignation(user.designation || (isAdmin ? 'Administrator' : ''));
+      setBadgeId(user.badgeId || (user.id?.startsWith('admin-') ? user.id.toUpperCase() : ''));
+      setProfileImage(user.profileImage || user.profileImageUrl || null);
     }
   }, [user]);
   
@@ -245,23 +257,37 @@ export const MyProfilePage = () => {
             {/* ADMIN EXECUTIVE SYSTEM OVERVIEW STATS (ADMIN ONLY) */}
             {isAdmin && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <div className={`p-4 rounded-2xl border text-center ${
-                  isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-white/80 border-slate-200'
+                <div className={`p-4 rounded-2xl border text-center shadow-sm ${
+                  isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white/90 border-slate-300'
                 }`}>
-                  <span className="text-[11px] font-bold text-slate-400">Grievances Monitored</span>
-                  <h4 className="text-xl font-extrabold font-serif text-blue-600 dark:text-blue-400 mt-1">2,142</h4>
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 font-serif">
+                    Grievances Monitored
+                  </span>
+                  <h4 className="text-2xl font-black font-serif text-blue-700 dark:text-blue-400 mt-1">
+                    {grievancesMonitoredCount}
+                  </h4>
                 </div>
-                <div className={`p-4 rounded-2xl border text-center ${
-                  isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-white/80 border-slate-200'
+
+                <div className={`p-4 rounded-2xl border text-center shadow-sm ${
+                  isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white/90 border-slate-300'
                 }`}>
-                  <span className="text-[11px] font-bold text-slate-400">Resolutions Approved</span>
-                  <h4 className="text-xl font-extrabold font-serif text-emerald-600 dark:text-emerald-400 mt-1">1,736</h4>
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 font-serif">
+                    Resolutions Approved
+                  </span>
+                  <h4 className="text-2xl font-black font-serif text-emerald-700 dark:text-emerald-400 mt-1">
+                    {resolutionsApprovedCount}
+                  </h4>
                 </div>
-                <div className={`p-4 rounded-2xl border text-center ${
-                  isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-white/80 border-slate-200'
+
+                <div className={`p-4 rounded-2xl border text-center shadow-sm ${
+                  isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white/90 border-slate-300'
                 }`}>
-                  <span className="text-[11px] font-bold text-slate-400">Active Departments</span>
-                  <h4 className="text-xl font-extrabold font-serif text-purple-600 dark:text-purple-400 mt-1">12 Bodies</h4>
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 font-serif">
+                    Active Departments
+                  </span>
+                  <h4 className="text-2xl font-black font-serif text-purple-700 dark:text-purple-400 mt-1">
+                    {activeDepartmentsCount} {activeDepartmentsCount === 1 ? 'Body' : 'Bodies'}
+                  </h4>
                 </div>
               </div>
             )}

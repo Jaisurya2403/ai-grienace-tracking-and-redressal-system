@@ -5,17 +5,19 @@ import { BackButton } from '../../components/common/BackButton.jsx';
 import { useComplaints } from '../../context/ComplaintContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { imagesApi } from '../../api/apiClient.js';
+import { matchDepartmentRules, findUnsolvedGrievanceMatches } from '../../services/ruleEngineAiService.js';
+import { verifyComplaintConsistency, verifyPincodeAddress } from '../../services/groqAiService.js';
 
 export const RegisterComplaintPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { departments, checkDuplicateComplaint, classifyDepartment } = useComplaints();
+  const { departments, complaints = [], addComplaint } = useComplaints();
 
   const [address, setAddress] = useState(user?.location || '');
   const [pincode, setPincode] = useState('');
   const [description, setDescription] = useState('');
   const [departmentId, setDepartmentId] = useState(departments[0]?.id || '');
-  const [aiMatchedDept, setAiMatchedDept] = useState(null);
+  const [aiMatchedRule, setAiMatchedRule] = useState(null);
 
   // Up to 5 Images (Starts EMPTY)
   const [imagesList, setImagesList] = useState([]);
@@ -27,8 +29,9 @@ export const RegisterComplaintPage = () => {
   const [videoPreview, setVideoPreview] = useState(null);
   const [videoName, setVideoName] = useState(null);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationWarning, setValidationWarning] = useState(null);
+  const [groqMismatchModal, setGroqMismatchModal] = useState(null);
 
   // Auto-select first department when departments load from backend
   useEffect(() => {
@@ -37,33 +40,35 @@ export const RegisterComplaintPage = () => {
     }
   }, [departments]);
 
-  // Live AI Department Auto-Classification
+  // MODULE 1: Real-Time Rule-Based AI Department Recognition & Auto-Fill (100+ keywords)
   useEffect(() => {
-    if (!description || description.trim().length < 4) {
-      setAiMatchedDept(null);
+    if (!description || description.trim().length < 3) {
+      setAiMatchedRule(null);
       return;
     }
 
-    const timer = setTimeout(async () => {
-      if (classifyDepartment) {
-        const res = await classifyDepartment(description, imagesList);
-        if (res && res.recommendedDeptId) {
-          setAiMatchedDept(res);
-          const matched = departments.find(
-            (d) =>
-              d.id === res.recommendedDeptId ||
-              (d.code && res.recommendedDeptId.toLowerCase().includes(d.code.toLowerCase())) ||
-              (d.name && res.recommendedDeptName && d.name.toLowerCase().includes(res.recommendedDeptName.toLowerCase().split(' ')[0]))
-          );
-          if (matched) {
-            setDepartmentId(matched.id);
-          }
-        }
+    const matched = matchDepartmentRules(description, departments);
+    if (matched && matched.deptId) {
+      setAiMatchedRule(matched);
+      setDepartmentId(matched.deptId);
+    } else {
+      // RULE D: Route to "Other Department" if no specific department matches
+      const otherDept = departments.find(d => 
+        d.id === 'dept-other' || 
+        d.name?.toLowerCase().includes('other') || 
+        d.name?.toLowerCase().includes('general')
+      );
+      if (otherDept) {
+        setDepartmentId(otherDept.id);
+        setAiMatchedRule({
+          deptId: otherDept.id,
+          deptName: otherDept.name,
+          confidence: 'GENERAL MATCH',
+          matchedKeywords: ['general inquiry']
+        });
       }
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [description, imagesList, departments, classifyDepartment]);
+    }
+  }, [description, departments]);
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -113,24 +118,14 @@ export const RegisterComplaintPage = () => {
     setVideoName(null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (imagesList.length === 0) {
-      setValidationWarning('Photo evidence is COMPULSORY. Please upload at least 1 photo of the grievance before registering.');
-      return;
-    }
-
-    const selectedDeptId = departmentId || departments[0]?.id || 'dept-pwd';
-
-    setIsAnalyzing(true);
+  const proceedWithRegistration = async (complaintPayload) => {
+    setIsSubmitting(true);
 
     // Upload files to backend imagesApi
     const uploadedImageIds = [];
     for (const imgItem of imagesList) {
       if (typeof imgItem === 'string' && imgItem.startsWith('data:')) {
         try {
-          // Convert dataURL to File object for upload
           const res = await fetch(imgItem);
           const blob = await res.blob();
           const file = new File([blob], `evidence-${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -147,14 +142,59 @@ export const RegisterComplaintPage = () => {
       }
     }
 
-    const dupResult = await checkDuplicateComplaint(description, pincode, selectedDeptId, address, imagesList);
-    setIsAnalyzing(false);
+    const payloadWithUploadedFiles = {
+      ...complaintPayload,
+      attachmentImageIds: uploadedImageIds,
+    };
 
+    // MODULE 2: SEARCH UNSOLVED GRIEVANCES BY PINCODE & DEPARTMENT
+    const matchingUnsolved = findUnsolvedGrievanceMatches(pincode, complaintPayload.departmentId, description, complaints);
+
+    // ALWAYS NAVIGATE TO REVIEW PAGE (SHOW MATCHES OR SHOW NO MATCHING FOUND NOTIFICATION CARD)
+    const reviewPayload = {
+      ...payloadWithUploadedFiles,
+      aiResult: {
+        existingComplaintFound: Boolean(matchingUnsolved && matchingUnsolved.length > 0),
+        matchType: 'RULE_MATCH',
+        confidence: 0.95,
+        reason: matchingUnsolved && matchingUnsolved.length > 0
+          ? `Rule AI identified ${matchingUnsolved.length} unresolved civic problem(s) matching Pincode ${pincode} & Department ${complaintPayload.departmentName}.`
+          : `Rule AI searched Pincode ${pincode} for ${complaintPayload.departmentName} and found no unresolved matching complaints.`,
+        candidateGrievances: matchingUnsolved || [],
+        matchedComplaints: matchingUnsolved || [],
+      },
+    };
+    sessionStorage.setItem('mcp_pending_complaint', JSON.stringify(reviewPayload));
+    setIsSubmitting(false);
+    navigate('/complaints/new/review');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (imagesList.length === 0) {
+      setValidationWarning('Photo evidence is COMPULSORY. Please upload at least 1 photo of the grievance before registering.');
+      return;
+    }
+
+    if (!pincode || pincode.trim().length !== 6 || isNaN(pincode)) {
+      setValidationWarning('Please enter a valid 6-digit Indian PIN code (e.g. 641004).');
+      return;
+    }
+
+    const selectedDeptId = departmentId || departments[0]?.id || 'dept-pwd';
     const targetDept = departments.find((d) => d.id === selectedDeptId);
     const deptName = targetDept ? targetDept.name : 'Public Works Department (PWD)';
+
+    setIsSubmitting(true);
+
+    // GROQ AI ADVANCED CONSISTENCY & GEOGRAPHIC VERIFICATION (PRIORITY 1: DESC, 2: EVIDENCE, 3: DEPT)
+    const groqVerification = await verifyComplaintConsistency(description, deptName, selectedDeptId, imagesList, videoName, pincode, address, departments);
+    const geoVerification = await verifyPincodeAddress(address, pincode);
+
     const deptOfficerEmail = targetDept ? (targetDept.officialEmail || targetDept.email || '') : '';
 
-    const pendingPayload = {
+    const complaintPayload = {
       userId: user?.id || 'usr-superadmin',
       userName: user?.name || 'Super Admin Jai Surya',
       userEmail: user?.email || user?.id || '',
@@ -165,13 +205,43 @@ export const RegisterComplaintPage = () => {
       departmentName: deptName,
       description,
       images: imagesList,
-      attachmentImageIds: uploadedImageIds,
+      attachmentImageIds: [],
       videoUrl: videoPreview,
-      aiResult: dupResult,
+      groqVerification,
+      geoVerification,
     };
 
-    sessionStorage.setItem('mcp_pending_complaint', JSON.stringify(pendingPayload));
-    navigate('/user/ai-check');
+    // IF GROQ AI DETECTS MISMATCH OR INVALID PINCODE -> SHOW INTERACTIVE MISMATCH MODAL AND PAUSE
+    if (groqVerification.hasWarning || !geoVerification.isValid) {
+      setIsSubmitting(false);
+
+      let modalTitle = '⚠️ Groq AI Verification Alert';
+      if (groqVerification.mismatchType === 'ALL_THREE_MISMATCHED') {
+        modalTitle = '🔴 Groq AI Alert: All Details Mismatched';
+      } else if (groqVerification.mismatchType === 'DESC_IMAGE_MISMATCH') {
+        modalTitle = '⚠️ Groq AI Alert: Description & Image Mismatch';
+      } else if (groqVerification.mismatchType === 'DEPARTMENT_MISMATCH') {
+        modalTitle = '⚠️ Groq AI Alert: Department Mismatch';
+      }
+
+      setGroqMismatchModal({
+        title: modalTitle,
+        mismatchType: groqVerification.mismatchType,
+        explanation: groqVerification.explanation || 'Groq AI detected a discrepancy in your submission details.',
+        imageUnderstanding: groqVerification.imageUnderstanding || null,
+        selectedDeptName: deptName,
+        recommendedDepartment: groqVerification.recommendedDepartment || 'Water Supply & Sewerage',
+        recommendedDeptId: groqVerification.recommendedDeptId || 'dept-water',
+        geoReason: !geoVerification.isValid 
+          ? geoVerification.reason 
+          : (geoVerification.exactAreaDetected ? `Exact Location: ${geoVerification.exactAreaDetected}` : null),
+        complaintPayload,
+      });
+      return;
+    }
+
+    // IF EVERYTHING MATCHES CLEANLY -> PROCEED DIRECTLY
+    await proceedWithRegistration(complaintPayload);
   };
 
   return (
@@ -302,10 +372,22 @@ export const RegisterComplaintPage = () => {
                 </select>
               </div>
 
-              {aiMatchedDept && (
-                <div className="sm:ml-[110px] p-2.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-extrabold flex items-center gap-2 shadow-sm animate-fade-in">
-                  <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0 animate-pulse" />
-                  <span>✨ AI Auto-Matched Department: <strong>{aiMatchedDept.recommendedDeptName}</strong> ({aiMatchedDept.detectedProblem})</span>
+              {aiMatchedRule && (
+                <div className="sm:ml-[110px] p-2.5 rounded-2xl bg-emerald-100/90 dark:bg-emerald-950/80 border border-emerald-400 text-emerald-950 dark:text-emerald-200 text-xs font-extrabold flex items-center justify-between gap-2 shadow-sm animate-fadeIn mt-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400 flex-shrink-0 animate-pulse" />
+                    <span>
+                      ✨ <strong>AI Rule Engine Auto-Selected:</strong> {aiMatchedRule.deptName}
+                      {Array.isArray(aiMatchedRule.matchedKeywords) && aiMatchedRule.matchedKeywords.length > 0 && (
+                        <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block sm:inline sm:ml-1">
+                          (Matched: "{aiMatchedRule.matchedKeywords.join('", "')}")
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-300 dark:bg-emerald-800 text-emerald-950 dark:text-emerald-100 flex-shrink-0">
+                    {aiMatchedRule.confidence} Match
+                  </span>
                 </div>
               )}
             </div>
@@ -419,18 +501,16 @@ export const RegisterComplaintPage = () => {
           {/* Submit CTA Button */}
           <button
             type="submit"
-            disabled={isAnalyzing}
-            className="pill-button-dark border border-slate-300figma-register-cta-btn bg-slate-900 hover:bg-slate-950 text-white w-full justify-center py-4 text-base shadow-xl hover:scale-105  transition-transform cursor-pointer"
+            disabled={isSubmitting}
+            className="pill-button-dark border border-slate-300 bg-slate-900 hover:bg-slate-950 text-white w-full justify-center py-4 text-base shadow-xl hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
           >
-            {isAnalyzing ? (
+            {isSubmitting ? (
               <>
-                <Sparkles className="w-5 h-5 text-blue-400 animate-spin" />
-                <span>Running Gemini AI Duplicate Search...</span>
+                <Sparkles className="w-5 h-5 text-emerald-400 animate-spin" />
+                <span>Submitting... ⏳</span>
               </>
             ) : (
-              <>
-                <span>Submit Complaint ➔</span>
-              </>
+              <span>Submit Complaint ➔</span>
             )}
           </button>
         </form>
@@ -494,6 +574,86 @@ export const RegisterComplaintPage = () => {
             >
               OK, Got It
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* GROQ AI MULTI-MODAL MISMATCH MODAL */}
+      {groqMismatchModal && (
+        <div
+          onClick={() => {
+            // Clean up temporary image IDs if user closes modal without submitting
+            if (groqMismatchModal.uploadedMongoIds) {
+              groqMismatchModal.uploadedMongoIds.forEach(id => imagesApi.deleteImage(id));
+            }
+            setGroqMismatchModal(null);
+          }}
+          className="compact-modal-overlay"
+          style={{ zIndex: 10000 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="compact-modal-card text-center flex flex-col items-center justify-center py-6 px-8 max-w-lg w-full"
+          >
+            <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-3 shadow-inner">
+              <AlertCircle className="w-8 h-8 stroke-[2.5]" />
+            </div>
+
+            <h3 className="text-lg font-extrabold font-serif text-slate-900 mb-2">
+              ⚠️ Groq AI Verification Alert
+            </h3>
+
+            <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-4 mb-4 text-left w-full">
+              <p className="text-xs text-amber-900 font-bold mb-2">
+                {groqMismatchModal.explanation}
+              </p>
+              {groqMismatchModal.imageUnderstanding && (
+                <div className="text-xs text-blue-900 font-semibold bg-blue-50/90 p-3 rounded-xl border border-blue-200 mb-2.5">
+                  👁️ <strong>Groq Vision AI (qwen/qwen3.6-27b) Image Recognition:</strong><br />
+                  <span className="text-slate-800 font-bold block mt-1">{groqMismatchModal.imageUnderstanding}</span>
+                </div>
+              )}
+              {groqMismatchModal.recommendedDepartment && (
+                <div className="text-xs text-slate-800 font-semibold bg-white p-3 rounded-xl border border-amber-200 mt-2">
+                  <strong>Selected Department:</strong> <span className="text-red-600 line-through font-bold">{groqMismatchModal.selectedDeptName}</span><br />
+                  <strong>Groq AI Recommended:</strong> <span className="text-emerald-700 font-bold">{groqMismatchModal.recommendedDepartment}</span>
+                </div>
+              )}
+              {groqMismatchModal.geoReason && (
+                <p className="text-xs text-slate-700 font-bold mt-2">
+                  📍 <strong>Location Verification:</strong> {groqMismatchModal.geoReason}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+              {groqMismatchModal.recommendedDeptId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (groqMismatchModal.recommendedDeptId) {
+                      setDepartmentId(groqMismatchModal.recommendedDeptId);
+                    }
+                    setGroqMismatchModal(null);
+                  }}
+                  className="pill-button-dark bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-6 text-xs font-extrabold cursor-pointer shadow-md flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4 text-white" />
+                  Auto-Fix to {groqMismatchModal.recommendedDepartment} ⚡
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const payload = groqMismatchModal.complaintPayload;
+                  setGroqMismatchModal(null);
+                  proceedWithRegistration(payload);
+                }}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-800 py-3 px-5 text-xs font-extrabold rounded-full cursor-pointer"
+              >
+                Proceed Anyway ➔
+              </button>
+            </div>
           </div>
         </div>
       )}

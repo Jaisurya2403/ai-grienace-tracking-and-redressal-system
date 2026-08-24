@@ -57,8 +57,8 @@ export const ComplaintProvider = ({ children }) => {
       date: c.feedbackDate ? c.feedbackDate.split('T')[0] : '',
     } : null,
     images: c.attachmentImageIds && c.attachmentImageIds.length > 0 
-      ? c.attachmentImageIds.map(id => `http://localhost:9999/api/images/${id}`)
-      : undefined,
+      ? c.attachmentImageIds.map(id => id.startsWith('http') || id.startsWith('data:') ? id : (c.images?.[0] || '/assets/front-6-8wBIS6.jpeg'))
+      : (c.images || undefined),
     createdAt: c.createdAt || c.postedDate || null,
     resolvedAt: c.resolvedAt || c.resolvedDate || null,
   }), [user?.id]);

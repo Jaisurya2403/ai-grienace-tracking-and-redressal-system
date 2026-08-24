@@ -1,14 +1,17 @@
 package com.mycomplaintportal.deptadmin.service;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.mycomplaintportal.deptadmin.entity.AdminAccount;
 import com.mycomplaintportal.deptadmin.entity.Department;
 import com.mycomplaintportal.deptadmin.repository.AdminAccountRepository;
 import com.mycomplaintportal.deptadmin.repository.DepartmentRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -179,9 +182,20 @@ public class DeptAdminService {
     }
 
     public AdminAccount createAdmin(AdminAccount admin, String password, String role) {
+        String email = admin.getEmail() != null ? admin.getEmail().trim().toLowerCase() : "";
+        if (email.isBlank()) {
+            throw new IllegalArgumentException("Admin email address is required.");
+        }
+
+        Optional<AdminAccount> existingOpt = adminRepository.findByEmailIgnoreCase(email);
+        if (existingOpt.isPresent()) {
+            throw new IllegalArgumentException("Admin account with this email already exists. Please use a different official email.");
+        }
+
         if (admin.getId() == null) {
             admin.setId("admin-" + UUID.randomUUID().toString().substring(0, 8));
         }
+        admin.setEmail(email);
         admin.setActive(true);
         AdminAccount saved = adminRepository.save(admin);
 
@@ -216,12 +230,51 @@ public class DeptAdminService {
 
     public AdminAccount updateAdmin(String id, AdminAccount updatedData) {
         AdminAccount existing = adminRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Admin account not found for ID: " + id));
-        existing.setUsername(updatedData.getUsername());
-        existing.setEmail(updatedData.getEmail());
-        existing.setGrantLevel(updatedData.getGrantLevel());
-        existing.setDesignation(updatedData.getDesignation());
-        return adminRepository.save(existing);
+                .orElseGet(() -> adminRepository.findByEmailIgnoreCase(id).orElse(null));
+        if (existing == null) {
+            existing = AdminAccount.builder()
+                    .id(id.contains("@") ? "admin-" + UUID.randomUUID().toString().substring(0, 8) : id)
+                    .username(updatedData.getUsername() != null ? updatedData.getUsername() : id)
+                    .email(updatedData.getEmail() != null ? updatedData.getEmail() : (id.contains("@") ? id : id + "@admin.portal"))
+                    .grantLevel(updatedData.getGrantLevel() != null ? updatedData.getGrantLevel() : "Super Admin")
+                    .designation(updatedData.getDesignation())
+                    .badgeId(updatedData.getBadgeId())
+                    .active(true)
+                    .build();
+        } else {
+            if (updatedData.getUsername() != null && !updatedData.getUsername().isBlank()) existing.setUsername(updatedData.getUsername());
+            if (updatedData.getEmail() != null && !updatedData.getEmail().isBlank()) existing.setEmail(updatedData.getEmail());
+            if (updatedData.getGrantLevel() != null && !updatedData.getGrantLevel().isBlank()) existing.setGrantLevel(updatedData.getGrantLevel());
+            if (updatedData.getDesignation() != null && !updatedData.getDesignation().isBlank()) existing.setDesignation(updatedData.getDesignation());
+            if (updatedData.getBadgeId() != null && !updatedData.getBadgeId().isBlank()) existing.setBadgeId(updatedData.getBadgeId());
+        }
+        AdminAccount saved = adminRepository.save(existing);
+
+        // SYNC UPDATED ADMIN ACCESS PERMISSIONS TO AUTH-SERVICE ADMINS_AUTH DATABASE TABLE
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            String roleStr = (saved.getGrantLevel() != null && saved.getGrantLevel().toLowerCase().contains("super")) 
+                    ? "SUPER_ADMIN" 
+                    : "DEPARTMENT_ADMIN";
+            String jsonPayload = String.format(
+                "{\"username\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}",
+                saved.getUsername() != null ? saved.getUsername() : "Admin",
+                saved.getEmail(),
+                roleStr
+            );
+
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create("http://localhost:8081/api/auth/create-admin"))
+                .header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+            client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            System.err.println("Warning: Auth sync on admin update failed: " + e.getMessage());
+        }
+
+        return saved;
     }
 
     public void deleteAdmin(String id, String requesterEmail) {

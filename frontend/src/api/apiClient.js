@@ -400,6 +400,20 @@ export const imagesApi = {
     });
     return handleResponse(res);
   },
+  deleteImage: async (imageId) => {
+    if (!imageId || imageId.startsWith('http') || imageId.startsWith('data:')) return { success: true };
+    try {
+      const headers = getHeaders(false);
+      const res = await smartFetch(`/images/${imageId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      return await handleResponse(res);
+    } catch (err) {
+      console.warn('Delete image error:', err);
+      return { success: false };
+    }
+  },
   getImageUrl: (imageId) => {
     if (!imageId) return '';
     if (imageId.startsWith('http')) return imageId;

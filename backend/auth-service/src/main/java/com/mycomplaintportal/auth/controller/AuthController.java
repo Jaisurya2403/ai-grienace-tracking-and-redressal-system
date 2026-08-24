@@ -36,17 +36,29 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/send-otp")
-    public ResponseEntity<AuthResponse> sendSignupOtp(@RequestBody Map<String, String> payload) {
-        String email = payload.get("email");
-        AuthResponse response = authService.sendSignupOtp(email);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> sendSignupOtp(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            AuthResponse response = authService.sendSignupOtp(email);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage() != null ? e.getMessage() : "Failed to send OTP. Please check your email and try again."));
+        }
     }
 
     @PostMapping("/forgot-password/send-otp")
-    public ResponseEntity<AuthResponse> sendForgotPasswordOtp(@RequestBody Map<String, String> payload) {
-        String email = payload.get("email");
-        AuthResponse response = authService.sendForgotPasswordOtp(email);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> sendForgotPasswordOtp(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            AuthResponse response = authService.sendForgotPasswordOtp(email);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("message", "No registered account found with email address: [" + payload.get("email") + "]. Please check your email or sign up."));
+        }
     }
 
     @PostMapping("/signup")
@@ -87,20 +99,32 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> payload) {
-        String email = payload.get("email");
-        String newPassword = payload.get("newPassword");
-        AuthResponse response = authService.resetPassword(email, newPassword);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            String newPassword = payload.get("newPassword");
+            AuthResponse response = authService.resetPassword(email, newPassword);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage() != null ? e.getMessage() : "Failed to reset password. Please try again."));
+        }
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<AuthResponse> changePassword(@RequestBody Map<String, String> payload) {
-        String email = payload.get("email");
-        String oldPassword = payload.get("oldPassword");
-        String newPassword = payload.get("newPassword");
-        AuthResponse response = authService.changePassword(email, oldPassword, newPassword);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            String oldPassword = payload.get("oldPassword");
+            String newPassword = payload.get("newPassword");
+            AuthResponse response = authService.changePassword(email, oldPassword, newPassword);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage() != null ? e.getMessage() : "Failed to change password. Please try again."));
+        }
     }
 
     @PostMapping("/create-admin")

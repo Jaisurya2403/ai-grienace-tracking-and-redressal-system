@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Phone, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { User, Phone, Lock, Mail, CheckCircle2, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../../components/common/BackButton.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { authApi } from '../../api/apiClient';
@@ -16,6 +16,7 @@ export const SignupPage = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [validationWarning, setValidationWarning] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,8 +59,7 @@ export const SignupPage = () => {
         state: pendingSignupPayload,
       });
     } catch (err) {
-      console.error('Failed to send OTP:', err);
-      setValidationWarning('Failed to send OTP. Please check your email and try again.');
+      setValidationWarning(err.message || 'This email address is already registered. 1 email can only belong to 1 user or admin account.');
       setIsSubmitting(false);
     }
   };
@@ -193,7 +193,7 @@ export const SignupPage = () => {
                 <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-3 px-4 rounded-full border border-slate-300 dark:border-slate-700 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                   <Lock className="w-5 h-5 text-slate-700 dark:text-slate-300 stroke-[2.2] flex-shrink-0" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={password}
@@ -211,6 +211,14 @@ export const SignupPage = () => {
                       margin: '0',
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 text-slate-600 dark:text-slate-400" /> : <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                  </button>
                 </div>
               </div>
 
@@ -221,7 +229,7 @@ export const SignupPage = () => {
                 <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-3 px-4 rounded-full border border-slate-300 dark:border-slate-700 shadow-sm focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                   <Lock className="w-5 h-5 text-slate-700 dark:text-slate-300 stroke-[2.2] flex-shrink-0" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={confirmPassword}
@@ -239,6 +247,14 @@ export const SignupPage = () => {
                       margin: '0',
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none flex-shrink-0 cursor-pointer"
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4 text-slate-600 dark:text-slate-400" /> : <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                  </button>
                 </div>
               </div>
             </div>
