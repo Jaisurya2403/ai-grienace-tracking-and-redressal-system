@@ -162,10 +162,24 @@ export const AddAdminPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 p-1 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus:outline-none cursor-pointer"
+                  className="absolute right-3 p-1.5 rounded-full text-slate-400 hover:text-amber-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 focus:outline-none cursor-pointer"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                  }}
                   title={showPassword ? 'Hide Password' : 'Show Password'}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 hover:text-amber-600 stroke-[2.2]" />
+                  ) : (
+                    <Eye className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 hover:text-amber-600 stroke-[2.2]" />
+                  )}
                 </button>
               </div>
             </div>
